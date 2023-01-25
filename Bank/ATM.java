@@ -10,9 +10,14 @@ public class ATM {
 
     public ATM(){}
 
+
+
     public void printOperationMessage(int balance, int money, OperationType operationType)
     {
-        if (balance - money < 0 && money >= 0 && operationType == OperationType.Decrease)
+        final int MIN_BALANCE = 0;
+        final int MIN_MONEY = 0;
+
+        if (balance - money < MIN_BALANCE && money >= MIN_MONEY && operationType == OperationType.Decrease)
         {
             System.out.println("Ошибка: на счету недостаточно средств\n");
         } 
@@ -29,12 +34,14 @@ public class ATM {
     {
         while (true) {
             System.out.println("Добро пожаловать в банокам GachyGangBang*c");
-            while (authorizedUser == null) {
+            while (authorizedUser == null)
+            {
                 System.out.println("Выберите опцию\nEnter - для входа в систему\nRegister - для регестрации нового пользователя");
                 String command = input.next();
                 if (command.equalsIgnoreCase("Register"))
-                {
-                    while(true)
+                {   
+                    boolean isRegistrationComplete = false;
+                    while(!isRegistrationComplete)
                     {
                         System.out.println("Введите имя пользователя или Quite для возврата на предыдущий экран");
                         String name = input.next();
@@ -42,27 +49,21 @@ public class ATM {
                         System.out.println("Введите пароль для пользователя Quite для возврата на предыдущий экран");
                         String password = input.next();
                         if(password.equalsIgnoreCase("Quite")){break;}
-                        int userCnt = 0;
-                        for (User user : bank.users) 
-                        {   
-                            userCnt++;
-                            if (user.getName().equals(name))
-                            {
-                                System.out.println("Пользователь с таким именем уже существует");;
-                                break;
-                            }
-                        }
-                        if(userCnt == bank.users.size())
+                        if(bank.users.stream().anyMatch(u -> u.getName().equalsIgnoreCase(name)))
                         {
-                            System.out.println("Пользователь успешно зарегистрирован");
-                            User registeredUser = new User(name, password);
-                            bank.registerUser(registeredUser);
-                            userCnt = 0;
+                            System.out.println("Пользователь с таким именем уже существует");
                             break;
                         }
                         if(password.equalsIgnoreCase("Quite") || name.equalsIgnoreCase("Quite"))
                         {
                             break;
+                        }
+                        else
+                        {
+                            User registeredUser = new User(name, password);
+                            bank.registerUser(registeredUser);
+                            isRegistrationComplete = true;
+                            System.out.println("Пользователь успешно зарегистрирован");
                         }
                     }
                 }
@@ -74,35 +75,35 @@ public class ATM {
                     System.out.println("Пожалуйста введите пароль:");
                     String password = input.next();
                     
-                    for (User user : bank.users) {
-                        if (user.getName().equals(name) && user.getPassword().equals(password)) 
-                        {
-                            authorizedUser = user;
-                            System.out.println("Вы успешно авторизовались!");
-                            break;
-                        }
+                    if (bank.users.stream().anyMatch(user -> user.getName().equalsIgnoreCase(name) && user.getPassword().equals(password))) 
+                    {
+                        this.authorizedUser = bank.users.stream().filter(u -> u.getName().equalsIgnoreCase(name) && u.getPassword().equals(password)).findFirst().orElse(null);
+                        System.out.println("Вы успешно авторизовались!");
+                        
+                        break;
+                    }
+                    else
+                    {
+                        System.out.println("Неверное имя пользователя или пароль!");
                     }
                 }
-                if (authorizedUser == null && command.equalsIgnoreCase("Enter")) 
-                {
-                    System.out.println("Неверное имя пользователя или пароль!");
-                }
-
-                if(!command.equals("Register") && !command.equals("Enter"))
+                else if(!command.equals("Register") && !command.equals("Enter"))
                 {   
                     System.out.println("Введена не верная комманда\n");
                 }
             }
 
-            while (authorizedUser != null || input.hasNext() == true) {
+            while (authorizedUser != null) {
 
                 System.out.println("Выберите операцию:\n");
                 System.out.println("Введите комманду Windrav снятия");
                 System.out.println("Введите комманду Deposite для пополнения депозита");
                 System.out.println("Введите комманду Transfer для перевода");
                 System.out.println("Введите комманду Info для просмотра информации o счете");
-                System.out.println("Введите комманду Delete для выхода\n");
+                System.out.println("Введите комманду Delete для удалдения текущего пользователя");
+                System.out.println("Введите комманду Find для поиска пользователя в системе");
                 System.out.println("Введите комманду Quite для выхода\n");
+                
 
                 String command = input.next();
                 if (command.equalsIgnoreCase("Windrav"))
@@ -125,29 +126,20 @@ public class ATM {
                     System.out.println("Ведите имя пользователя:");
 
                     String name = input.next();
-                    int userCnt = 0;
-                    for (User user : bank.users) 
+
+                    if(bank.users.stream().anyMatch(u -> u.getName().equalsIgnoreCase(name)))
                     {
-                        userCnt++;
-                        if (user.getName().equalsIgnoreCase(name))
-                        {
-                            System.out.println("Ведите сумму:");
-
-                            int money = input.nextInt();
-
-                            printOperationMessage(authorizedUser.getAccount().getBalance(), money, OperationType.Decrease);
-                            authorizedUser.getAccount().transfer(money, user.getAccount());
-                            break;
-                        }
-                        if(userCnt == bank.users.size())
-                        {
-                            System.out.println("Данный пользователь не обнаружен");
-                            userCnt = 0;
-                        }
-                        
-
+                        System.out.println("Ведите сумму:");
+                        Account account = bank.users.stream().filter(u -> u.getName().equalsIgnoreCase(name)).findFirst().orElse(null).getAccount();
+                        int money = input.nextInt();
+                        authorizedUser.getAccount().transfer(money, account);
+                        printOperationMessage(authorizedUser.getAccount().getBalance(), money, OperationType.Decrease);
+                        break;
                     }
-                    
+                    else
+                    {
+                        System.out.println("Данный пользователь не обнаружен");
+                    }
                 } 
                 else if (command.equalsIgnoreCase("Quite")) 
                 {
@@ -174,22 +166,16 @@ public class ATM {
                 {   
                     System.out.println("Введите имя пользователя\n");
                     String name = input.next();
-                    int userCnt = 0;
-                    for (User user : bank.users) 
-                    {   
-                        userCnt++;
-                        if (user.getName().equals(name))
-                        {
-                            System.out.println(user.toString());
-                            break;
-                        }
-                    }
-                    if(userCnt == bank.users.size())
+                    if(bank.users.stream().anyMatch(u -> u.getName().equalsIgnoreCase(name)))
                     {
-                        System.out.println("Данный пользователь не обнаружен");
-                        userCnt = 0;
+                        User user = bank.users.stream().filter(u -> u.getName().equalsIgnoreCase(name)).findFirst().orElse(null); 
+                        System.out.println(user.toString());
+                        break;
                     }
-
+                    else
+                    {
+                        System.out.println("Пользователь с таким именем не обнаружен");
+                    }
                 }
                 else 
                 {
